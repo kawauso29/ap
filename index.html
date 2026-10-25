@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="応用情報技術者試験・科目Aの学習進捗ダッシュボード">
+  <title>応用情報｜学習ダッシュボード</title>
+  <style>
+    :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:#f6f8f6;color:#1b2d28}
+    *{box-sizing:border-box}body{margin:0;line-height:1.55}main{max-width:1120px;margin:auto;padding:30px 20px 64px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:28px;flex-wrap:wrap}
+    h1{font-size:clamp(24px,4vw,34px);line-height:1.3;letter-spacing:-.04em;margin:6px 0}
+    h2{font-size:19px;margin:0 0 15px;letter-spacing:-.02em}
+    .eyebrow{font-size:12px;color:#257e65;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
+    .muted{color:#61726b;font-size:13px}.toplink{color:#145c47;text-decoration:none;font-weight:700;border:1px solid #c6d8cf;border-radius:10px;padding:9px 13px;background:#fff}
+    .intro{margin:0 0 20px}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:26px}
+    .panel,.stat{background:white;border:1px solid #e4ebe6;border-radius:16px;box-shadow:0 5px 16px #163f2b08}
+    .stat{padding:19px}.stat small{display:block;font-size:12px;color:#61726b;margin-bottom:7px}.stat strong{font-size:31px;letter-spacing:-.05em}.stat .unit{font-size:12px;margin-left:4px}
+    .panel{padding:22px;margin-bottom:18px}.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .progress-row{display:grid;grid-template-columns:100px 1fr 70px;align-items:center;gap:12px;margin:15px 0;font-size:14px}
+    .bar{height:9px;border-radius:100px;background:#e9eeeb;overflow:hidden}.bar span{display:block;height:100%;background:#30977b;border-radius:100px}
+    .filterbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}input,select{min-height:42px;font:inherit;color:inherit;border:1px solid #cfded4;border-radius:9px;background:#fff;padding:8px 12px}
+    input{flex:1;min-width:220px}select{min-width:142px}
+    .scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:left;padding:12px;border-bottom:1px solid #ebefec;vertical-align:top}th{font-size:12px;color:#60716a;font-weight:700;background:#f9fbf9;white-space:nowrap}
+    td:first-child{font-family:ui-monospace,SFMono-Regular,monospace;white-space:nowrap}.pill{display:inline-block;background:#edf6f0;color:#286d54;border-radius:100px;padding:3px 8px;font-size:11px;font-weight:700}
+    .pill.warn{background:#fff4e8;color:#986019}.pill.dim{background:#edf0f0;color:#66736d}
+    .notes{font-size:13px;color:#52665b}.notes a{color:#166c53}.foot{font-size:12px;color:#67796f;margin-top:20px}
+    #error{display:none;padding:14px 17px;border:1px solid #e8bdb6;background:#fff4f1;border-radius:12px;color:#7b352a}
+    @media(max-width:720px){.stats{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.panel{padding:15px}.progress-row{grid-template-columns:82px 1fr 55px}.stat strong{font-size:26px}main{padding:20px 12px 40px}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div><div class="eyebrow">Applied Information Technology Engineer</div><h1>応用情報｜学習ダッシュボード</h1><div class="muted">科目A ／ 学習データの唯一の正本：master.json</div></div>
+    <a class="toplink" href="./master.json">正本データを見る ↗</a>
+  </header>
+  <p class="intro muted" id="updated">GitHubから最新の学習データを読み込み中…</p>
+  <p id="error" role="alert"></p>
+  <section class="stats" aria-label="学習状況">
+    <div class="stat"><small>出題・類題の確認論点</small><strong id="checked">—</strong><span class="unit">/ 160</span></div>
+    <div class="stat"><small>復習優先（要復習）</small><strong id="review">—</strong><span class="unit">論点</span></div>
+    <div class="stat"><small>定着済み</small><strong id="mastered">—</strong><span class="unit">論点</span></div>
+    <div class="stat"><small>演習イベント記録</small><strong id="attempts">—</strong><span class="unit">件</span></div>
+  </section>
+  <div class="two">
+    <section class="panel"><h2>分野別の確認状況</h2><div id="areas"></div><p class="notes">過去の類題履歴（仮照合）も含みます。確認済みは「定着済み」を意味しません。</p></section>
+    <section class="panel"><h2>最近の演習結果</h2><div class="scroll"><table><thead><tr><th>日付</th><th>論点</th><th>採点</th></tr></thead><tbody id="recent"></tbody></table></div></section>
+  </div>
+  <section class="panel">
+    <h2>論点一覧</h2>
+    <div class="filterbar">
+      <input type="search" id="query" placeholder="論点名・ID・分野で検索" aria-label="論点を検索">
+      <select id="status" aria-label="理解状況を選択"><option value="all">すべて</option><option value="review">要復習</option><option value="unseen">未確認</option><option value="mastered">定着済み</option></select>
+    </div>
+    <div class="muted" id="count"></div>
+    <div class="scroll"><table><thead><tr><th>論点ID</th><th>分野</th><th>論点</th><th>習得判定</th><th>最終確認</th></tr></thead><tbody id="topic-list"></tbody></table></div>
+  </section>
+  <p class="foot">この画面は閲覧専用です。学習結果の追加・更新はGitHub上の master.json に対して行います。別日の類題確認が終わるまで、単発正答を「定着済み」にしません。</p>
+</main>
+<script>
+(function(){
+  "use strict";
+  var data;
+  var el=function(id){return document.getElementById(id)};
+  var td=function(row,value){var cell=document.createElement("td");cell.textContent=value==null?"":String(value);row.appendChild(cell);return cell};
+  var format=function(value){return value||"未確認"};
+  var isChecked=function(q){return q["進捗状態"] && q["進捗状態"]!=="未出題"};
+  function draw(){
+    var qs=data.questions||[],topics=data.topics||[],logs=data.attempts||[];
+    el("checked").textContent=qs.filter(isChecked).length;
+    el("review").textContent=topics.filter(function(t){return t["習得判定"]==="要復習"}).length;
+    el("mastered").textContent=topics.filter(function(t){return t["習得判定"]==="定着済み"}).length;
+    el("attempts").textContent=logs.length;
+    el("updated").textContent="最終演習反映：" + (data.source.last_session_applied||"未登録") + " ｜ 問題 " + qs.length + "問・論点 "+topics.length+"件";
+    ["テクノロジ","マネジメント","ストラテジ"].forEach(function(area){
+      var list=qs.filter(function(q){return q["系統"]===area}),n=list.filter(isChecked).length;
+      var row=document.createElement("div");row.className="progress-row";
+      var label=document.createElement("span");label.textContent=area;
+      var track=document.createElement("div");track.className="bar";var fill=document.createElement("span");fill.style.width=(list.length?100*n/list.length:0)+"%";track.appendChild(fill);
+      var value=document.createElement("span");value.textContent=n+"/"+list.length;
+      row.append(label,track,value);el("areas").appendChild(row);
+    });
+    var questionsById=new Map(qs.map(function(q){return [q["問題ID"],q]}));
+    logs.slice(-10).reverse().forEach(function(log){
+      var row=document.createElement("tr");
+      td(row,log["出題日"]);
+      var name=questionsById.get(log["問題ID"]);
+      td(row,name?name["論点"]:log["問題ID"]);
+      var cell=td(row,"");var label=document.createElement("span");label.className="pill "+(/不正解|未回答|要復習/.test(log["採点"])?"warn":/部分|一部/.test(log["採点"])?"dim":"");label.textContent=log["採点"]||"未確認";cell.appendChild(label);
+      el("recent").appendChild(row);
+    });
+    function renderTopics(){
+      var query=el("query").value.trim().toLowerCase(),mode=el("status").value;
+      var filtered=topics.filter(function(t){
+        var s=t["習得判定"]||"未確認";
+        if(mode==="review"&&s!=="要復習")return false;
+        if(mode==="unseen"&&s!=="未確認")return false;
+        if(mode==="mastered"&&s!=="定着済み")return false;
+        return !query||[t["論点ID"],t["論点"],t["分野"],t["系統"]].join(" ").toLowerCase().includes(query);
+      });
+      filtered.sort(function(a,b){return (a["習得判定"]==="要復習"?0:1)-(b["習得判定"]==="要復習"?0:1)});
+      el("count").textContent=filtered.length+"論点を表示";
+      var body=el("topic-list");body.replaceChildren();
+      filtered.forEach(function(t){
+        var row=document.createElement("tr");
+        td(row,t["論点ID"]);td(row,t["分野"]);td(row,t["論点"]);
+        var cell=td(row,""),tag=document.createElement("span");var state=format(t["習得判定"]);tag.className="pill "+(state==="要復習"?"warn":state==="未確認"?"dim":"");tag.textContent=state;cell.appendChild(tag);
+        td(row,t["最終確認日"]||"—");body.appendChild(row);
+      });
+    }
+    el("query").addEventListener("input",renderTopics);
+    el("status").addEventListener("change",renderTopics);
+    renderTopics();
+  }
+  fetch("./master.json",{cache:"no-store"}).then(function(res){if(!res.ok)throw new Error("HTTP "+res.status);return res.json()}).then(function(json){if(!Array.isArray(json.questions)||!Array.isArray(json.topics)||!Array.isArray(json.attempts))throw new Error("正本の形式が不正です");data=json;draw()}).catch(function(err){el("updated").textContent="データを表示できません";el("error").style.display="block";el("error").textContent="master.json を取得できませんでした。GitHub Pagesで公開しているか確認してください。（"+err.message+"）"});
+})();
+</script>
+</body>
+</html>
